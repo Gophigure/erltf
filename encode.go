@@ -7,17 +7,29 @@ import (
 	"reflect"
 )
 
+// DefaultBufferSize is the default size used for a new buffer when creating a new [Encoder] via
+// [NewEncoder]. This only works if a nil value is passed or the given byte slice's cap is below
+// this value, in which case it creates a new byte slice and copies the memory.
 var DefaultBufferSize = 2048
 
+// Encoder is an interface that can be implemented for either encoding ETF data with a custom type,
+// or to act as a wrapper of an [Encoder] returned from [NewEncoder].
 type Encoder interface {
 	io.Writer
 
-	Encode(v any) (n int, err error)
+	EncodeAsETF(v any) (n int, err error)
 }
 
+// NewEncoder returns a new [Encoder] value ready for use. Passing a nil value or []byte with a cap
+// <= [DefaultBufferSize] will cause this function to create a new []byte with a cap equal to
+// [DefaultBufferSize].
 func NewEncoder(buf []byte) (Encoder, error) {
-	if buf == nil {
+	if buf == nil || cap(buf) == 0 {
 		buf = make([]byte, DefaultBufferSize)
+	} else if cap(buf) < DefaultBufferSize {
+		nBuf := make([]byte, DefaultBufferSize)
+		copy(nBuf, buf)
+		buf = nBuf
 	}
 
 	enc := &encoder{bytes.NewBuffer(buf)}
@@ -42,9 +54,11 @@ var (
 	falseBuf = []byte{byte(SmallAtomUTF8Ext), 5, 'f', 'a', 'l', 's', 'e'}
 )
 
+// ErrUnsupportedTypeEncode is returned when a value passed to an [Encoder]'s EncodeAsETF function is unsupported.
 var ErrUnsupportedTypeEncode = errors.New("github.com/Gophigure/erltf: attempt to encode unsupported type (or kind)")
 
-func (e *encoder) Encode(v any) (n int, err error) {
+// EncodeAsETF is used to write any supported value to the internal buffer.
+func (e *encoder) EncodeAsETF(v any) (n int, err error) {
 	val := reflect.ValueOf(v)
 	// Serialize untyped nil or interface-typed nil values to 'nil', handle potentially invalid
 	// kinds as well.
