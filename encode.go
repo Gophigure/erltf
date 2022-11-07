@@ -34,6 +34,7 @@ var AlwaysEncodeStringsAsBinary = true
 // or to act as a wrapper of an [Encoder] returned from [NewEncoder].
 type Encoder interface {
 	io.Writer
+	io.Reader
 
 	EncodeAsETF(v any) (n int, err error)
 	EncodeAsBinaryETF(v []byte) (n int, err error)
@@ -44,9 +45,9 @@ type Encoder interface {
 // [DefaultBufferSize].
 func NewEncoder(buf []byte) (Encoder, error) {
 	if buf == nil || cap(buf) == 0 {
-		buf = make([]byte, DefaultBufferSize)
+		buf = make([]byte, 0, DefaultBufferSize)
 	} else if cap(buf) < DefaultBufferSize {
-		nBuf := make([]byte, DefaultBufferSize)
+		nBuf := make([]byte, len(buf), DefaultBufferSize)
 		copy(nBuf, buf)
 		buf = nBuf
 	}
@@ -293,3 +294,6 @@ func (e *encoder) EncodeAsBinaryETF(v []byte) (n int, err error) {
 
 	return e.buf.Write(append(buf, v...))
 }
+
+// Read implements the [io.Reader] interface.
+func (e *encoder) Read(p []byte) (n int, err error) { return e.buf.Read(p) }
