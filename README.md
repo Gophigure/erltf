@@ -41,6 +41,11 @@ usage outside this purpose is not within the scope of this library.
 
 - `string`, `[...]T` & `[]T` values.
 - `map[string]T` & struct values.
+  - **erltf** supports field tags and behaves similar to the `encoding/json` package, it does not
+    currently impose any naming schemes.
+    - No tag means **erltf** will use the field's name.
+    - `erltf:"encoded_pair_name"` will use `encoded_pair_name`.
+    - `erltf:"-"` will cause **erltf** to ignore the field.
 
 - Ability to force the encoding of `[]byte` values as `BINARY_EXT` via `Encoder.EncodeAsBinaryETF`.
   - You can force the encoding of all `string` values to `BINARY_EXT` with
