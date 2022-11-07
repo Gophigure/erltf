@@ -5,6 +5,8 @@
 This module is intended for communication specifically with the [Discord Gateway][discord-gateway],
 usage outside this purpose is not within the scope of this library.
 
+*A general rule of thumb is that types that require a Node identifier are not implemented.*
+
 > **Note**
 > Full functionality in accordance with the [Erlang External Term Format][erlang-ext-tf] is not off
 > the table, and we will accept contributions that provide this functionality *without hindering
@@ -25,11 +27,15 @@ usage outside this purpose is not within the scope of this library.
 - [`erltf`](#erltf)
   - [Table of Contents](#table-of-contents)
   - [Features](#features)
+    - [Encoding](#encoding)
   - [Planned](#planned)
 
 ## Features
 
-None, yet.
+### Encoding
+
+- `bool` values (`true` & `false`)
+- `untyped nil` or interface-typed `nil` values.
 
 ## Planned
 
