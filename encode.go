@@ -12,7 +12,7 @@ import (
 // DefaultBufferSize is the default size used for a new buffer when creating a new [Encoder] via
 // [NewEncoder]. This only works if a nil value is passed or the given byte slice's cap is below
 // this value, in which case it creates a new byte slice and copies the memory.
-var DefaultBufferSize = 2048
+var DefaultBufferSize = 1024 * 1024
 
 // DefaultEncodeRecursionDepth is the default maximum depth an encoder should travel before
 // returning an error.
