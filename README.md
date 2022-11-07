@@ -19,9 +19,6 @@ usage outside this purpose is not within the scope of this library.
 > advertised as having a specific purpose as to not lead those looking for a general implementation
 > astray.
 
-[erlang-ext-tf]: https://www.erlang.org/doc/apps/erts/erl_ext_dist.html
-[discord-gateway]: https://discord.com/developers/docs/topics/gateway#gateway
-
 ## Table of Contents
 
 - [`erltf`](#erltf)
@@ -29,6 +26,7 @@ usage outside this purpose is not within the scope of this library.
   - [Features](#features)
     - [Encoding](#encoding)
   - [Planned](#planned)
+  - [Usage](#usage)
 
 ## Features
 
@@ -46,3 +44,11 @@ usage outside this purpose is not within the scope of this library.
 ## Planned
 
 Full functionality **in regards to** communicating with the [Discord Gateway][discord-gateway].
+
+## Usage
+
+More to come, but `AlwaysEncodeStringsAsBinary` must be assigned to `true` when working with the
+[Discord Gateway][discord-gateway].
+
+[erlang-ext-tf]: https://www.erlang.org/doc/apps/erts/erl_ext_dist.html
+[discord-gateway]: https://discord.com/developers/docs/topics/gateway#gateway
