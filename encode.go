@@ -16,7 +16,7 @@ var DefaultBufferSize = 2048
 
 // AlwaysEncodeStringsAsBinary is whether to always encode string values using the [BinaryExt]
 // identifier if they are passed to an [Encoder]'s EncodeAsETF method.
-const AlwaysEncodeStringsAsBinary = true
+var AlwaysEncodeStringsAsBinary = false
 
 // Encoder is an interface that can be implemented for either encoding ETF data with a custom type,
 // or to act as a wrapper of an [Encoder] returned from [NewEncoder].
@@ -61,7 +61,12 @@ var (
 
 // ErrUnsupportedTypeEncode is returned when a value passed to an [Encoder]'s EncodeAsETF function is unsupported.
 var ErrUnsupportedTypeEncode = errors.New("github.com/Gophigure/erltf: attempt to encode unsupported type (or kind)")
+
+// ErrStringTooLong is returned when attempting to encode a string that is too large.
 var ErrStringTooLong = errors.New("github.com/Gophigure/erltf: attempt to encode string with size larger than the uint32 limit")
+
+// ErrListTooLarge is returned when attempting to encode an array, slice or string that is too large.
+var ErrListTooLarge = errors.New("github.com/Gophigure/erltf: attempt to encode array, slice or string with a length larger than the uint32 limit")
 
 // EncodeAsETF is used to write any supported value to the internal buffer.
 func (e *encoder) EncodeAsETF(v any) (n int, err error) {
@@ -114,8 +119,44 @@ func (e *encoder) EncodeAsETF(v any) (n int, err error) {
 			math.Float64bits(val.Float()),
 		))
 	case reflect.String:
-		return e.EncodeAsBinaryETF([]byte(val.String()))
+		str := val.String()
+		if AlwaysEncodeStringsAsBinary {
+			return e.EncodeAsBinaryETF([]byte(str))
+		}
+
+		length := len(str)
+		if length < math.MaxUint16 {
+			buf := make([]byte, 1, 3+length)
+			buf[0] = byte(StringExt)
+			buf = binary.LittleEndian.AppendUint16(buf, uint16(length))
+
+			return e.buf.Write(append(buf, str...))
+		}
+		fallthrough
 	case reflect.Array, reflect.Slice:
+		length := val.Len()
+		if length > math.MaxUint32 {
+			return 0, ErrListTooLarge
+		}
+
+		buf := make([]byte, 1, 5)
+		buf[0] = byte(ListExt)
+		buf = binary.BigEndian.AppendUint32(buf, uint32((val.Len())))
+
+		n, err = e.buf.Write(buf)
+		if err != nil {
+			return
+		}
+
+		for i := 0; i < length; i++ {
+			elementLength, elementErr := e.EncodeAsETF(val.Index(i))
+			if elementErr != nil {
+				return n, elementErr
+			}
+			n += elementLength
+		}
+
+		return e.buf.Write(nilBuf)
 	case reflect.Struct:
 	case reflect.Map:
 	}

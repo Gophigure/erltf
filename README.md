@@ -37,17 +37,11 @@ usage outside this purpose is not within the scope of this library.
 - `bool` values (`true` & `false`)
 - `untyped nil` or interface-typed `nil` values.
 - `uint8`, `int32`, `uint32`, `float32`, `float64` values.
-- `string` values **BUT** only as `BINARY_EXT`.
+- `string`, `[...]T` & `[]T` values.
 - Force the encoding of values as `BINARY_EXT` by providing a `[]byte` to
   `Encoder.EncodeAsBinaryETF`.
     - You can use this directly to force encoding `string`s as `BINARY_EXT` or set
     `AlwaysEncodeStringsAsBinary` to `true`.
-    <br/>
-
-    > **Note**
-    > `AlwaysEncodeStringsAsBinary` is currently a constant set to `true` as encoding `string`
-    > values regularly is not yet supported. It will be changed to a variable and default to `false`
-    > when this is no longer required.
 
 ## Planned
 
