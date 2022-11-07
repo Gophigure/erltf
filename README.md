@@ -25,38 +25,51 @@ usage outside this purpose is not within the scope of this library.
   - [Table of Contents](#table-of-contents)
   - [Features](#features)
     - [Encoding](#encoding)
-  - [Planned](#planned)
+    - [Decoding](#decoding)
 
 ## Features
 
 ### Encoding
 
-- `bool` values.
-- untyped `nil`, interface-typed `nil` & `nil` pointer values.
-- Non-`nil` pointer values.
-- `uint?` (excluding `uintptr`) & `int?` values.
-    <br>
+- [X] `bool` values
+- [X] untyped `nil`, interface-typed `nil` & `nil` pointer values
+- [ ] values of types that implement the `EncodeETF` interface.
     > **Note**
-    > The `?` means `uint`, `int` and all related types (e.g. `uint8` or `int64`) are supported.
+    > This feature is waiting on [Decoding](#decoding) to be in full swing before implementing, so
+    > that returned data can be verified.
 
-- `string`, `[...]T` & `[]T` values.
-- `map[string]T` & struct values.
-  - **erltf** supports field tags and behaves similar to the `encoding/json` package, it does not
-    currently impose any naming schemes.
-    - No tag means **erltf** will use the field's name.
-    - `erltf:"encoded_pair_name"` will use `encoded_pair_name`.
-    - `erltf:"-"` will cause **erltf** to ignore the field.
+- [X] pointers and interfaces (treated as recursion, does not serializes pointers as they are)
+- [X] `uint`, `uint8`, `uint16` &`uint64` values (`uintptr` will likely never be supported)
+- [X] `int`, `int8`, `int16` & `int64` values
+- [X] `string` values
+- [X] `[...]T` (array) & `[]T` (slice) values
+- [X] `map[string]T` values
+- [X] composite (struct) values
+  - Not using an `erltf` tag on a field will cause **erltf** to use the field's name.
+  - Supplying a tag of `erltf:"tag_name"` or `erltf:"-"` will rename or ignore the field
+    respectively.
 
-- Ability to force the encoding of `[]byte` values as `BINARY_EXT` via `Encoder.EncodeAsBinaryETF`.
-  - You can force the encoding of all `string` values to `BINARY_EXT` with
-    `AlwaysEncodeStringsToBinary`.
+- [X] Explicitly encode `[]byte` data as `BINARY_EXT` with `Encoder.EncodeAsBinaryETF`.
 
-## Planned
+### Decoding
 
-- Allow declaring custom encode functions that override default behavior for custom types, like
-  `encoding/json.Marshaler`.
-- Decoding ETF data with regards to the below.
-- Full functionality **in regards to** communicating with the [Discord Gateway][discord-gateway].
+- [ ] `bool` values
+- [ ] values of types that implement the `DecodeETF` interface.
+- [ ] pointers (treated as recursion, does not deserialize pointers as they are)
+- [ ] `uint`, `uint8`, `uint16` &`uint64` values (`uintptr` will likely never be supported)
+- [ ] `int`, `int8`, `int16` & `int64` values
+- [ ] `string` values
+- [ ] `[...]T` (array) & `[]T` (slice) values
+- [ ] `map[string]T` values
+- [ ] composite (struct) values
+  - Not using an `erltf` tag on a field will cause **erltf** to use the field's name.
+  - Supplying a tag of `erltf:"tag_name"` or `erltf:"-"` will rename or ignore the field
+    respectively.
+
+---
+
+> 👋 While not required, we'd greatly **appreciate kudos in projects that use this module**. Have
+> fun out there!
 
 [erlang-ext-tf]: https://www.erlang.org/doc/apps/erts/erl_ext_dist.html
 [discord-gateway]: https://discord.com/developers/docs/topics/gateway#gateway
