@@ -26,7 +26,6 @@ usage outside this purpose is not within the scope of this library.
   - [Features](#features)
     - [Encoding](#encoding)
   - [Planned](#planned)
-  - [Usage](#usage)
 
 ## Features
 
@@ -44,11 +43,6 @@ usage outside this purpose is not within the scope of this library.
 ## Planned
 
 Full functionality **in regards to** communicating with the [Discord Gateway][discord-gateway].
-
-## Usage
-
-More to come, but `AlwaysEncodeStringsAsBinary` must be assigned to `true` when working with the
-[Discord Gateway][discord-gateway].
 
 [erlang-ext-tf]: https://www.erlang.org/doc/apps/erts/erl_ext_dist.html
 [discord-gateway]: https://discord.com/developers/docs/topics/gateway#gateway

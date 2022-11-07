@@ -20,7 +20,7 @@ var DefaultEncodeRecursionDepth = 256
 
 // AlwaysEncodeStringsAsBinary is whether to always encode string values using the [BinaryExt]
 // identifier if they are passed to an [Encoder]'s EncodeAsETF method.
-var AlwaysEncodeStringsAsBinary = false
+var AlwaysEncodeStringsAsBinary = true
 
 // Encoder is an interface that can be implemented for either encoding ETF data with a custom type,
 // or to act as a wrapper of an [Encoder] returned from [NewEncoder].
