@@ -123,21 +123,53 @@ func (e *encoder) encode(v any, nest int) (n int, err error) {
 		return e.buf.Write(falseBuf)
 	case reflect.Uint8:
 		return e.buf.Write([]byte{byte(SmallIntegerExt), byte(val.Uint())})
-	case reflect.Int32:
-		buf := make([]byte, 1, 5)
-		buf[0] = byte(IntegerExt)
+	case reflect.Int16, reflect.Int32, reflect.Int64:
+		buf := make([]byte, 3, 3+val.Type().Size())
+		if cap(buf) > 7 {
+			buf[0] = byte(LargeBigExt)
+		} else {
+			buf[0] = byte(SmallBigExt)
+		}
 
-		return e.buf.Write(binary.BigEndian.AppendUint32(buf, uint32(val.Uint())))
-	case reflect.Uint32:
-		// TODO: Consider implementing this with a loop ourselves to not waste encoding unused large
-		// bits.
+		d := val.Int()
+		if d >= 0 {
+			buf[2] = 0
+		} else {
+			d = -d
+			buf[2] = 1
+		}
 
-		buf := make([]byte, 3, 7)
-		buf[0] = byte(SmallBigExt)
-		buf[1] = 4
+		enc := byte(0)
+		for i := d; i > 0; enc++ {
+			buf[3+enc] = byte(i & 0xFF)
+			i >>= 8
+		}
+		buf[1] = enc
+
+		if buf[0] == byte(SmallBigExt) {
+			return e.buf.Write(binary.LittleEndian.AppendUint32(buf, uint32(d)))
+		}
+		return e.buf.Write(binary.LittleEndian.AppendUint64(buf, uint64(d)))
+	case reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		buf := make([]byte, 3, 3+val.Type().Size())
+		if cap(buf) > 7 {
+			buf[0] = byte(LargeBigExt)
+		} else {
+			buf[0] = byte(SmallBigExt)
+		}
+
+		d, enc := val.Uint(), 0
+		for i := d; i > 0; enc++ {
+			buf[3+enc] = byte(i & 0xFF)
+			i >>= 8
+		}
+		buf[1] = byte(enc)
 		buf[2] = 0
 
-		return e.buf.Write(binary.LittleEndian.AppendUint32(buf, uint32(val.Uint())))
+		if buf[0] == byte(SmallBigExt) {
+			return e.buf.Write(binary.LittleEndian.AppendUint32(buf, uint32(d)))
+		}
+		return e.buf.Write(binary.LittleEndian.AppendUint64(buf, d))
 	case reflect.Float32, reflect.Float64:
 		buf := make([]byte, 1, 9)
 		buf[0] = byte(NewFloatExt)
