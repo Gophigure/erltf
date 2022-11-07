@@ -14,6 +14,10 @@ import (
 // this value, in which case it creates a new byte slice and copies the memory.
 var DefaultBufferSize = 2048
 
+// DefaultEncodeRecursionDepth is the default maximum depth an encoder should travel before
+// returning an error.
+var DefaultEncodeRecursionDepth = 256
+
 // AlwaysEncodeStringsAsBinary is whether to always encode string values using the [BinaryExt]
 // identifier if they are passed to an [Encoder]'s EncodeAsETF method.
 var AlwaysEncodeStringsAsBinary = false
@@ -59,7 +63,8 @@ var (
 	falseBuf = []byte{byte(SmallAtomUTF8Ext), 5, 'f', 'a', 'l', 's', 'e'}
 )
 
-// ErrUnsupportedTypeEncode is returned when a value passed to an [Encoder]'s EncodeAsETF function is unsupported.
+// ErrUnsupportedTypeEncode is returned when a value passed to an [Encoder]'s EncodeAsETF function
+// is unsupported.
 var ErrUnsupportedTypeEncode = errors.New("github.com/Gophigure/erltf: attempt to encode unsupported type (or kind)")
 
 // ErrStringTooLong is returned when attempting to encode a string that is too large.
@@ -68,8 +73,15 @@ var ErrStringTooLong = errors.New("github.com/Gophigure/erltf: attempt to encode
 // ErrListTooLarge is returned when attempting to encode an array, slice or string that is too large.
 var ErrListTooLarge = errors.New("github.com/Gophigure/erltf: attempt to encode array, slice or string with a length larger than the uint32 limit")
 
+// ErrEncodeRecursionDepthExceeded is returned when an [Encoder] attempts to encode a value past the
+// maximum recursion depth, it is expected that other implementations of the [Encoder] interface
+// implement this behavior for consistency.
+var ErrEncodeRecursionDepthExceeded = errors.New("github.com/Gophigure/erltf: maximum recursion depth for encoding exceeded")
+
 // EncodeAsETF is used to write any supported value to the internal buffer.
-func (e *encoder) EncodeAsETF(v any) (n int, err error) {
+func (e *encoder) EncodeAsETF(v any) (n int, err error) { return e.encode(v, DefaultBufferSize) }
+
+func (e *encoder) encode(v any, nest int) (n int, err error) {
 	val := reflect.ValueOf(v)
 	// Serialize untyped nil or interface-typed nil values to 'nil', handle potentially invalid
 	// kinds as well.
@@ -149,7 +161,7 @@ func (e *encoder) EncodeAsETF(v any) (n int, err error) {
 		}
 
 		for i := 0; i < length; i++ {
-			elementLength, elementErr := e.EncodeAsETF(val.Index(i))
+			elementLength, elementErr := e.encode(val.Index(i), nest-1)
 			if elementErr != nil {
 				return n, elementErr
 			}
