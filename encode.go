@@ -89,8 +89,8 @@ var ErrEncodeRecursionDepthExceeded = errors.New("github.com/Gophigure/erltf: ma
 // ErrTooManyPairs is returned if a map has more pairs than the uint32 limit.
 var ErrTooManyPairs = errors.New("github.com/Gophigure/erltf: map has to many key -> value pairs")
 
-// EncodeAsETF is used to write any supported value to the internal buffer. Passing a pointer will
-// effectively reduce the nest recursion depth by 1.
+// EncodeAsETF is used to write any supported value to the internal buffer. Passing a pointer or
+// interface will effectively reduce the nest recursion depth by 1.
 func (e *encoder) EncodeAsETF(v any) (n int, err error) { return e.encode(v, DefaultBufferSize) }
 
 func (e *encoder) encode(v any, nest int) (n int, err error) {
@@ -103,17 +103,17 @@ func (e *encoder) encode(v any, nest int) (n int, err error) {
 
 	switch val.Kind() {
 	// TODO: Handle types that implement EncodeETF.
-	case reflect.Chan,
+	case
+		reflect.Chan,
 		reflect.Func,
 		reflect.Complex64,
 		reflect.Complex128,
-		reflect.Interface,
 		reflect.Uintptr,
 		reflect.UnsafePointer:
 		// Panic because a program attempting to serialize these kinds through erltf should be
 		// considered a mistake and must be handled ASAP.
 		panic("github.com/Gophigure/erltf: attempt to serialize invalid type " + val.Type().Name())
-	case reflect.Pointer:
+	case reflect.Pointer, reflect.Interface:
 		// This has the benefit of serializing nil values to 'nil'
 		return e.encode(reflect.ValueOf(v).Elem().Interface(), nest-1)
 	case reflect.Bool:
