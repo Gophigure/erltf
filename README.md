@@ -31,18 +31,27 @@ usage outside this purpose is not within the scope of this library.
 
 ### Encoding
 
-- `bool` values (`true` & `false`)
-- `untyped nil` or interface-typed `nil` values.
-- `uint8`, `int32`, `uint32`, `float32`, `float64` values.
+- `bool` values.
+- untyped `nil`, interface-typed `nil` & `nil` pointer values.
+- Non-`nil` pointer values.
+- `uint?` (excluding `uintptr`) & `int?` values.
+    <br>
+    > **Note**
+    > The `?` means `uint`, `int` and all related types (e.g. `uint8` or `int64`) are supported.
+
 - `string`, `[...]T` & `[]T` values.
-- Force the encoding of values as `BINARY_EXT` by providing a `[]byte` to
-  `Encoder.EncodeAsBinaryETF`.
-    - You can use this directly to force encoding `string`s as `BINARY_EXT` or set
-    `AlwaysEncodeStringsAsBinary` to `true`.
+- `map[string]T` & struct values.
+
+- Ability to force the encoding of `[]byte` values as `BINARY_EXT` via `Encoder.EncodeAsBinaryETF`.
+  - You can force the encoding of all `string` values to `BINARY_EXT` with
+    `AlwaysEncodeStringsToBinary`.
 
 ## Planned
 
-Full functionality **in regards to** communicating with the [Discord Gateway][discord-gateway].
+- Allow declaring custom encode functions that override default behavior for custom types, like
+  `encoding/json.Marshaler`.
+- Decoding ETF data with regards to the below.
+- Full functionality **in regards to** communicating with the [Discord Gateway][discord-gateway].
 
 [erlang-ext-tf]: https://www.erlang.org/doc/apps/erts/erl_ext_dist.html
 [discord-gateway]: https://discord.com/developers/docs/topics/gateway#gateway

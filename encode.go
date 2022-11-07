@@ -9,6 +9,14 @@ import (
 	"reflect"
 )
 
+// EncodeETF can be implemented by custom types to overwrite default behavior when encoding into
+// ETF data.
+//
+// This is not yet respected as there is no way to currently validate the output.
+type EncodeETF interface {
+	EncodeToETF() ([]byte, error)
+}
+
 // DefaultBufferSize is the default size used for a new buffer when creating a new [Encoder] via
 // [NewEncoder]. This only works if a nil value is passed or the given byte slice's cap is below
 // this value, in which case it creates a new byte slice and copies the memory.
@@ -78,8 +86,8 @@ var ErrListTooLarge = errors.New("github.com/Gophigure/erltf: attempt to encode 
 // implement this behavior for consistency.
 var ErrEncodeRecursionDepthExceeded = errors.New("github.com/Gophigure/erltf: maximum recursion depth for encoding exceeded")
 
-// ErrTooManyFields is returned if a given struct has more fields than the uint32 limit.
-var ErrTooManyFields = errors.New("github.com/Gophigure/erltf: struct has too many fields")
+// ErrTooManyPairs is returned if a map has more pairs than the uint32 limit.
+var ErrTooManyPairs = errors.New("github.com/Gophigure/erltf: map has to many key -> value pairs")
 
 // EncodeAsETF is used to write any supported value to the internal buffer. Passing a pointer will
 // effectively reduce the nest recursion depth by 1.
@@ -94,6 +102,7 @@ func (e *encoder) encode(v any, nest int) (n int, err error) {
 	}
 
 	switch val.Kind() {
+	// TODO: Handle types that implement EncodeETF.
 	case reflect.Chan,
 		reflect.Func,
 		reflect.Complex64,
@@ -177,7 +186,62 @@ func (e *encoder) encode(v any, nest int) (n int, err error) {
 
 		return e.buf.Write(nilBuf)
 	case reflect.Struct:
+		length := val.NumField()
+		if length >= math.MaxInt32 {
+			// Compile-time issue, should not be handled at during runtime.
+			panic("github.com/Gophigure/erltf: struct has too many fields")
+		}
+
+		typ := val.Type()
+		mapped := make(map[string]any, length)
+		for i := 0; i < length; i++ {
+			fieldTyp := typ.Field(i)
+			tag := fieldTyp.Tag.Get("erltf")
+			if tag == "" {
+				tag = fieldTyp.Name
+			} else if tag == "-" {
+				continue
+			}
+
+			mapped[tag] = val.Field(i).Interface()
+		}
+		val = reflect.ValueOf(mapped)
+		fallthrough
 	case reflect.Map:
+		if val.Type().Key().Kind() != reflect.String {
+			// Compile-time issue, should not be handled during runtime.
+			panic("github.com/Gophigure/erltf: map's key type must be of kind string")
+		}
+
+		length := val.Len()
+		if length > math.MaxUint32 {
+			return 0, ErrTooManyPairs
+		}
+
+		buf := make([]byte, 1, 5)
+		buf[0] = byte(MapExt)
+		n, err = e.buf.Write(binary.BigEndian.AppendUint32(buf, uint32(length)))
+		if err != nil {
+			return
+		}
+
+		iter := val.MapRange()
+		for iter.Next() {
+			k, v := iter.Key(), iter.Value()
+			keyLen, keyErr := e.encode(k.Interface(), nest-1)
+			if keyErr != nil {
+				return n, keyErr
+			}
+			n += keyLen
+
+			valLen, valErr := e.encode(v.Interface(), nest-1)
+			if valErr != nil {
+				return n, valErr
+			}
+			n += valLen
+		}
+
+		return n, nil
 	}
 
 	return 0, ErrUnsupportedTypeEncode

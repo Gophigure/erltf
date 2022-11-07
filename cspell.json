@@ -1,6 +1,10 @@
 {
     "words": [
         "erltf",
-        "Gophigure"
+        "Gophigure",
+        "struct"
+    ],
+    "ignoreWords": [
+        "uintptr"
     ]
 }
