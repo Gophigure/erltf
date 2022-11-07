@@ -2,8 +2,10 @@ package erltf
 
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
 	"io"
+	"math"
 	"reflect"
 )
 
@@ -12,12 +14,17 @@ import (
 // this value, in which case it creates a new byte slice and copies the memory.
 var DefaultBufferSize = 2048
 
+// AlwaysEncodeStringsAsBinary is whether to always encode string values using the [BinaryExt]
+// identifier if they are passed to an [Encoder]'s EncodeAsETF method.
+const AlwaysEncodeStringsAsBinary = true
+
 // Encoder is an interface that can be implemented for either encoding ETF data with a custom type,
 // or to act as a wrapper of an [Encoder] returned from [NewEncoder].
 type Encoder interface {
 	io.Writer
 
 	EncodeAsETF(v any) (n int, err error)
+	EncodeAsBinaryETF(v []byte) (n int, err error)
 }
 
 // NewEncoder returns a new [Encoder] value ready for use. Passing a nil value or []byte with a cap
@@ -43,9 +50,7 @@ type encoder struct {
 	buf *bytes.Buffer
 }
 
-func (e *encoder) Write(p []byte) (n int, err error) {
-	panic("github.com/Gophigure/erltf: encoder.Write is not yet implemented!!!")
-}
+func (e *encoder) Write(p []byte) (n int, err error) { return e.EncodeAsBinaryETF(p) }
 
 // Prevent allocating these buffers multiple times as these types *may* be common.
 var (
@@ -56,6 +61,7 @@ var (
 
 // ErrUnsupportedTypeEncode is returned when a value passed to an [Encoder]'s EncodeAsETF function is unsupported.
 var ErrUnsupportedTypeEncode = errors.New("github.com/Gophigure/erltf: attempt to encode unsupported type (or kind)")
+var ErrStringTooLong = errors.New("github.com/Gophigure/erltf: attempt to encode string with size larger than the uint32 limit")
 
 // EncodeAsETF is used to write any supported value to the internal buffer.
 func (e *encoder) EncodeAsETF(v any) (n int, err error) {
@@ -82,7 +88,52 @@ func (e *encoder) EncodeAsETF(v any) (n int, err error) {
 			return e.buf.Write(trueBuf)
 		}
 		return e.buf.Write(falseBuf)
-	default:
-		return 0, ErrUnsupportedTypeEncode
+	case reflect.Uint8:
+		return e.buf.Write([]byte{byte(SmallIntegerExt), byte(val.Uint())})
+	case reflect.Int32:
+		buf := make([]byte, 1, 5)
+		buf[0] = byte(IntegerExt)
+
+		return e.buf.Write(binary.BigEndian.AppendUint32(buf, uint32(val.Uint())))
+	case reflect.Uint32:
+		// TODO: Consider implementing this with a loop ourselves to not waste encoding unused large
+		// bits.
+
+		buf := make([]byte, 3, 7)
+		buf[0] = byte(SmallBigExt)
+		buf[1] = 4
+		buf[2] = 0
+
+		return e.buf.Write(binary.LittleEndian.AppendUint32(buf, uint32(val.Uint())))
+	case reflect.Float32, reflect.Float64:
+		buf := make([]byte, 1, 9)
+		buf[0] = byte(NewFloatExt)
+
+		return e.buf.Write(binary.BigEndian.AppendUint64(
+			buf,
+			math.Float64bits(val.Float()),
+		))
+	case reflect.String:
+		return e.EncodeAsBinaryETF([]byte(val.String()))
+	case reflect.Array, reflect.Slice:
+	case reflect.Struct:
+	case reflect.Map:
 	}
+
+	return 0, ErrUnsupportedTypeEncode
+}
+
+// EncodeAsBinaryETF encodes a slice of bytes as binary data using the [BinaryExt] identifier. This
+// is useful for 'forcing' the encoding of a value as binary data.
+func (e *encoder) EncodeAsBinaryETF(v []byte) (n int, err error) {
+	length := len(v)
+	if length > math.MaxUint32 {
+		return 0, ErrStringTooLong
+	}
+
+	buf := make([]byte, 1, 5+length)
+	buf[0] = byte(BinaryExt)
+	buf = binary.BigEndian.AppendUint32(buf, uint32(length))
+
+	return e.buf.Write(append(buf, v...))
 }
