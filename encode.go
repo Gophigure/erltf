@@ -78,7 +78,11 @@ var ErrListTooLarge = errors.New("github.com/Gophigure/erltf: attempt to encode 
 // implement this behavior for consistency.
 var ErrEncodeRecursionDepthExceeded = errors.New("github.com/Gophigure/erltf: maximum recursion depth for encoding exceeded")
 
-// EncodeAsETF is used to write any supported value to the internal buffer.
+// ErrTooManyFields is returned if a given struct has more fields than the uint32 limit.
+var ErrTooManyFields = errors.New("github.com/Gophigure/erltf: struct has too many fields")
+
+// EncodeAsETF is used to write any supported value to the internal buffer. Passing a pointer will
+// effectively reduce the nest recursion depth by 1.
 func (e *encoder) EncodeAsETF(v any) (n int, err error) { return e.encode(v, DefaultBufferSize) }
 
 func (e *encoder) encode(v any, nest int) (n int, err error) {
@@ -100,6 +104,9 @@ func (e *encoder) encode(v any, nest int) (n int, err error) {
 		// Panic because a program attempting to serialize these kinds through erltf should be
 		// considered a mistake and must be handled ASAP.
 		panic("github.com/Gophigure/erltf: attempt to serialize invalid type " + val.Type().Name())
+	case reflect.Pointer:
+		// This has the benefit of serializing nil values to 'nil'
+		return e.encode(reflect.ValueOf(v).Elem().Interface(), nest-1)
 	case reflect.Bool:
 		if v.(bool) {
 			return e.buf.Write(trueBuf)
