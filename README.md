@@ -56,7 +56,7 @@ usage outside this purpose is not within the scope of this library.
 - [ ] `bool` values
 - [ ] values of types that implement the `DecodeETF` interface.
 - [ ] pointers (treated as recursion, does not deserialize pointers as they are)
-- [ ] `uint`, `uint8`, `uint16` &`uint64` values (`uintptr` will likely never be supported)
+- [ ] `uint`, `uint8`, `uint16` & `uint64` values (`uintptr` will likely never be supported)
 - [ ] `int`, `int8`, `int16` & `int64` values
 - [ ] `string` values
 - [ ] `[...]T` (array) & `[]T` (slice) values
